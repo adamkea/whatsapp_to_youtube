@@ -20,6 +20,7 @@ if not credentials or not credentials.valid:
         flow = InstalledAppFlow.from_client_secrets_file(
             "client_secret.json",
             scopes=["https://www.googleapis.com/auth/youtube.force-ssl"],
+            authorization_prompt_message=""
         )
         
         flow.run_local_server(port=8080, prompt="consent")
@@ -32,19 +33,24 @@ if not credentials or not credentials.valid:
 
 youtube = build('youtube', 'v3', credentials=credentials)
 
-regex = "(?P<url>https?://[^\s]+)"
 links = []
 
-with open('whatsapp.txt', encoding="utf8") as f:
+with open("lorcan.txt", encoding="utf8") as f:
     lines = f.readlines()
     for l in lines:
         if "youtube.com" in l:
-            link = re.findall(regex, l)
+            link = re.findall("(?P<url>https?://[^\s]+)", l)
             try:
-                links.append(link[0])
+                video_id = link[0].split('?v=')[1].split('&')[0]
+                links.append(video_id)
             except:
                 print("An exception occured")
+
+    # # get users playlists
+    request = youtube.playlists().list(part="id, snippet", mine=True)
+    my_playlists = request.execute()
     
+    # create the playlist
     request = youtube.playlists().insert(
         part="snippet,status",
         body={
@@ -64,6 +70,29 @@ with open('whatsapp.txt', encoding="utf8") as f:
     )
     response = request.execute()
 
-    print(response)
+    playlist_id = response.get('id')
+
+    batch = youtube.new_batch_http_request()
+
+    for link in links:
+        try:
+            youtube.playlistItems().insert(
+                part="snippet",
+                body={
+                        'snippet': {
+                        'playlistId': playlist_id, 
+                        'resourceId': {
+                                'kind': 'youtube#video',
+                            'videoId': link
+                            }
+                        }
+                }
+                ).execute()
+            print('Video added')
+        except:
+            print('Video could no be added')
+
+    responses = batch.execute()
 
 print(links)
+print(len(links))
