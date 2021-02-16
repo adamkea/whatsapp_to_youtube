@@ -35,14 +35,19 @@ youtube = build('youtube', 'v3', credentials=credentials)
 
 links = []
 
-with open("lorcan.txt", encoding="utf8") as f:
+with open("your_whatsapp_export.txt", encoding="utf8") as f:
     lines = f.readlines()
     for l in lines:
-        if "youtube.com" in l:
-            link = re.findall("(?P<url>https?://[^\s]+)", l)
+        if "youtube.com" or "youtu.be" in l:
             try:
-                video_id = link[0].split('?v=')[1].split('&')[0]
-                links.append(video_id)
+                if "youtu.be" in l:
+                    video_id = l.split('youtu.be/')[1]
+                    links.append(video_id[0:11])
+
+                else:   
+                    link = re.findall("(?P<url>https?://[^\s]+)", l)
+                    video_id = link[0].split('?v=')[1].split('&')[0]
+                    links.append(video_id)
             except:
                 print("An exception occured")
 
@@ -51,7 +56,7 @@ with open("lorcan.txt", encoding="utf8") as f:
     
     my_playlists = request.execute()
     
-    playlist_name = raw_input("Playlist name: ")
+    playlist_name = input("Playlist name: ")
 
     # create the playlist
     request = youtube.playlists().insert(
